@@ -1,0 +1,30 @@
+All Steps are to be documented in www.asana.com direct or sendening an e-mail to  <x+2231737310424@mail.asana.com> (Project Aufgaben Service Management) with SUBJECT: CHANGE [Setup linux [servername.domain.tld]]- and the follwoing body 
+
+I) 
+at DNS-Net make a "in a" entry (optional) - Test: (NOT) successful
+
+II)
+the Hoster modify reverse lookup (optional)  - Test: (NOT) successful
+
+III)  - on the new linux machine
+) change root passwd  und document without the salt in lastpass 
+) modify /etc/hosts and /etc/hostname - servername.domain.tld 
+) "apt-get update && apt-get -y upgrade" - (no)Error
+) "apt-get -y install git-core " - (no)Error
+) adduser rootmessages
+) adduser rootmessages sudo
+) reboot 
+# download BPMspaceUG/linux_config_script_files
+) Test: login rootmessages
+) check hostname -f und hostname
+) git clone https://github.com/BPMspaceUG/linux_config_script_files.git - (no)Error
+# Setup SSH on port 7070 - PermitRootLogin no - PasswordAuthentication no
+) sudo cp /etc/ssh/sshd_config /etc/ssh/sshd_config.bak
+#exclude root from ssh login - move ro Port 7070 - PasswordAuthentication no - PermitRootLogin no
+) sudo cp linux_config_script_files/daemon/sshd/sshd_config /etc/ssh/
+) mkdir .ssh
+) sudo cp linux_config_script_files/authorized_keys/authorized_keys /home/rootmessages/.ssh/ - (no)Error
+) sudo reboot
+) Test login rootmessages via port 7070 and with key as rootmessages 
+
+ 
