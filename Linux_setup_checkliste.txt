@@ -26,5 +26,8 @@ III)  - on the new linux machine
 ) sudo cp linux_config_script_files/authorized_keys/authorized_keys /home/rootmessages/.ssh/ - (no)Error
 ) sudo reboot
 ) Test login rootmessages via port 7070 and with key as rootmessages 
+# ipatbels 
+) chmod 700 /home/rootmessages/linux_config_script_files/iptables/iptables_port_*
+) ...
 
  
