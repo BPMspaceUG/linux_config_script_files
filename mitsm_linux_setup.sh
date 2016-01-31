@@ -111,6 +111,7 @@ echo "exit 0" >> /etc/rc.local
 
 # cp iptables.sh /opt
 cp /home/rootmessages/linux_config_script_files/iptables/iptables.sh /opt
+chmod u+x /opt/iptables.sh
 
 
 echo " "
