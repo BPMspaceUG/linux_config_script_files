@@ -109,6 +109,10 @@ echo "#!/bin/sh -e" > /etc/rc.local
 echo "/opt/iptables.sh" >>/etc/rc.local
 echo "exit 0" >> /etc/rc.local
 
+# cp iptables.sh /opt
+cp /home/rootmessages/linux_config_script_files/iptables/iptables.sh /opt
+
+
 echo " "
 echo "we want to have an up2date server, so let's update all stuff."
 echo " "
