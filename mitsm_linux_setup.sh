@@ -22,11 +22,52 @@
 # -cron-apt for automatic security updates will be installed and configured
 # -iptables configuration
 # -apt-get update && apt-get upgrade
+# switch for prod or test environment (80/443 -> 4040/5050)
 #-------------------------------------------------------------------
 # after the script has finished, we need a reboot for all changes
 # ssh daemon will not be restarted during the setup because otherwise you will
 # get kicked out 
 #-------------------------------------------------------------------
+
+ENV=$1
+
+PORTS_CONF="/etc/apache2/ports.conf"
+DEFAULT_CONF="/etc/apache2/sites-available/000-default.conf"
+SSL_CONF="/etc/apache2/sites-available/default-ssl.conf"
+
+usage () {
+
+  echo "$0 <prod|test>"
+
+}
+
+if [ $# -ne 1 ];then
+
+  usage
+  exit 1
+
+fi
+
+case $ENV in
+
+  prod)
+
+        HTTP_PORT=80
+        SSL_PORT=443
+        ;;
+
+  test)
+
+        HTTP_PORT=4040
+        SSL_PORT=5050
+        ;;
+
+  *)
+        usage
+        exit 1
+        ;;
+
+esac
 
 echo " "
 echo "creating user rootmessages..."
@@ -62,6 +103,10 @@ mkdir /home/rootmessages/.ssh
 chmod 700 /home/rootmessages/.ssh
 cp linux_config_script_files/authorized_keys/authorized_keys /home/rootmessages/.ssh
 
+#echo " "
+#echo "adding user icinga for monitoring"
+#useradd icinga
+
 # install MySQL Server
 apt-get install -y mysql-server mysql-client
 
@@ -75,6 +120,23 @@ tar cvfz /etc/apache2.tar.gz /etc/apache2
 cp -f linux_config_script_files/daemon/apache2/000-default.conf /etc/apache2/sites-available
 cp -f linux_config_script_files/daemon/apache2/default-ssl /etc/apache2/sites-available/default-ssl.conf
 cp -f linux_config_script_files/daemon/apache2/ports.conf /etc/apache2/
+
+
+if [[ "$ENV" == "prod" ]];then
+
+    sed -e "s/4040/$HTTP_PORT/g" $PORTS_CONF -i 
+    sed -e "s/5050/$SSL_PORT/g" $PORTS_CONF -i 
+    sed -e "s/4040/$HTTP_PORT/g" $DEFAULT_CONF -i
+    sed -e "s/5050/$SSL_PORT/g" $SSL_CONF -i
+    sed -e "s/4040/$HTTP_PORT/g" $DEFAULT_CONF -i
+    sed -e "s/4040/$HTTP_PORT/g" /opt/iptables.sh -i
+    sed -e "s/5050/$SSL_PORT/g" /opt/iptables.sh -i
+
+  else
+  
+    echo "we are in $ENV, Ports stay on $HTTP_PORT and $SSL_PORT"
+	
+fi
 
 a2enmod ssl
 a2ensite 000-default default-ssl
@@ -112,6 +174,7 @@ echo "exit 0" >> /etc/rc.local
 # cp iptables.sh /opt
 cp /home/rootmessages/linux_config_script_files/iptables/iptables.sh /opt
 chmod u+x /opt/iptables.sh
+chmod u+x /etc/rc.local
 
 
 echo " "
@@ -126,27 +189,27 @@ apt-get upgrade -y > /dev/null 2>&1
 echo "checking Apache webserver..."
 echo "" 
 
-curl -s http://localhost:4040 > /dev/null
+curl -s http://localhost:${HTTP_PORT} > /dev/null
 
 if [ $? -eq 0 ];then
 
-    echo "Apache is accessible on port 4040"
+    echo "Apache is accessible on port ${HTTP_PORT}"
  
   else 
 
-   echo "Error. Apache Webserver not accessible on port 4040, please check"
+   echo "Error. Apache Webserver not accessible on port ${HTTP_PORT}, please check"
 
 fi
 
-curl -s --insecure https://localhost:5050 > /dev/null
+curl -s --insecure https://localhost:${SSL_PORT} > /dev/null
 
 if [ $? -eq 0 ];then
 
-    echo "Apache is accessible on port 5050 / ssl"
+    echo "Apache is accessible on port ${SSL_PORT} / ssl"
  
   else 
 
-   echo "Error. Apache Webserver not accessible on port 4040, please check"
+   echo "Error. Apache Webserver not accessible on port ${SSL_PORT}, please check"
 
 fi
 
@@ -171,3 +234,4 @@ echo "cron-apt -s"
 echo " "
 echo "setup done. Please reboot"
 echo " "
+
