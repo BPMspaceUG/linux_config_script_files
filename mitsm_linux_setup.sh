@@ -22,7 +22,9 @@
 # -cron-apt for automatic security updates will be installed and configured
 # -iptables configuration
 # -apt-get update && apt-get upgrade
-# switch for prod or test environment (80/443 -> 4040/5050)
+# -switch for prod or test environment (80/443 -> 4040/5050)
+# -fixed bug. iptables script should be in place before sed stuff...
+#
 #-------------------------------------------------------------------
 # after the script has finished, we need a reboot for all changes
 # ssh daemon will not be restarted during the setup because otherwise you will
@@ -121,6 +123,19 @@ cp -f linux_config_script_files/daemon/apache2/000-default.conf /etc/apache2/sit
 cp -f linux_config_script_files/daemon/apache2/default-ssl /etc/apache2/sites-available/default-ssl.conf
 cp -f linux_config_script_files/daemon/apache2/ports.conf /etc/apache2/
 
+# Firewall stuff
+echo "adding iptables script to /etc/rc.local"
+
+mv /etc/rc.local /etc/rc.local.bak
+
+echo "#!/bin/sh -e" > /etc/rc.local
+echo "/opt/iptables.sh" >>/etc/rc.local
+echo "exit 0" >> /etc/rc.local
+
+# cp iptables.sh /opt
+cp /home/rootmessages/linux_config_script_files/iptables/iptables.sh /opt
+chmod u+x /opt/iptables.sh
+chmod u+x /etc/rc.local
 
 if [[ "$ENV" == "prod" ]];then
 
@@ -161,21 +176,6 @@ echo "deb http://security.debian.org/ jessie/updates main contrib" > /etc/apt/se
 echo "deb-src http://security.debian.org/ jessie/updates main contrib" >> /etc/apt/security.list
 
 echo "OPTIONS=\"-q -o Dir::Etc::SourceList=/etc/apt/security.list\"" >> /etc/cron-apt/config.d/5-secupdates
-
-# Firewall stuff
-echo "adding iptables script to /etc/rc.local"
-
-mv /etc/rc.local /etc/rc.local.bak
-
-echo "#!/bin/sh -e" > /etc/rc.local
-echo "/opt/iptables.sh" >>/etc/rc.local
-echo "exit 0" >> /etc/rc.local
-
-# cp iptables.sh /opt
-cp /home/rootmessages/linux_config_script_files/iptables/iptables.sh /opt
-chmod u+x /opt/iptables.sh
-chmod u+x /etc/rc.local
-
 
 echo " "
 echo "we want to have an up2date server, so let's update all stuff."
