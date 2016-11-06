@@ -3,7 +3,7 @@
 #-------------------------------------------------------------------
 # Install script for MITSM standard Linux server setup
 #
-# v0.1 / Karl-Heinz Fichtlscherer / secsolutions GmbH
+# v1.0 / Karl-Heinz Fichtlscherer
 #
 # if you want to have a log of all stuff, please call the script as following:
 #
@@ -24,6 +24,8 @@
 # -apt-get update && apt-get upgrade
 # -switch for prod or test environment (80/443 -> 4040/5050)
 # -fixed bug. iptables script should be in place before sed stuff...
+# -changed to MariaDB
+# -added sudo package and sudo rules
 #
 #-------------------------------------------------------------------
 # after the script has finished, we need a reboot for all changes
@@ -78,17 +80,21 @@ adduser --quiet rootmessages
 adduser rootmessages sudo
 
 echo "activate dotdeb repository"
-echo "deb http://packages.dotdeb.org jessie all" >> /etc/apt/sources.list.d/dotdeb.list
+echo "deb http://packages.dotdeb.org jessie all" >> /etc/apt/sources.list
 
 echo ""
 echo "import dotdeb gpg key...."
 cd /tmp
 wget https://www.dotdeb.org/dotdeb.gpg && apt-key add dotdeb.gpg && apt-get update
 
+# add MariaDB repo
+echo "MariaDB 10.1 repository list" >> /etc/apt/sources.list
+echo "deb [arch=amd64,i386] http://ftp.hosteurope.de/mirror/mariadb.org/repo/10.1/debian jessie main" >> /etc/apt/sources.list
+
 apt-get update > /dev/null 2>&1
 
-echo "let's install git and curl"
-apt-get install -y git curl
+echo "let's install git, curl and sudo"
+apt-get install -y git curl sudo
 echo " "
 echo "done."
 
@@ -105,12 +111,8 @@ mkdir /home/rootmessages/.ssh
 chmod 700 /home/rootmessages/.ssh
 cp linux_config_script_files/authorized_keys/authorized_keys /home/rootmessages/.ssh
 
-#echo " "
-#echo "adding user icinga for monitoring"
-#useradd icinga
-
-# install MySQL Server
-apt-get install -y mysql-server mysql-client
+# install MariaDB Server
+apt-get install -y mariadb-server mariadb-client
 
 mysql_secure_installation
 
@@ -183,6 +185,11 @@ echo " "
 apt-get update > /dev/null 2>&1
 apt-get upgrade -y > /dev/null 2>&1
 
+# sudo rules
+echo "adding user to sudoers file...."
+echo "rootmessages   ALL=(ALL)  NOPASSWD: ALL" >> /etc/sudoers
+
+# add monitoring plugins and Icinga User
 
 # let's check the ssh port and the apache / mysql stuff
 
