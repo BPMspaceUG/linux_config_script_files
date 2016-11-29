@@ -3,8 +3,6 @@
 #-------------------------------------------------------------------
 # Install script for MITSM standard Linux server setup
 #
-# v1.0 / Karl-Heinz Fichtlscherer
-#
 # if you want to have a log of all stuff, please call the script as following:
 #
 # mitsm_linux_setup.sh | tee -a /tmp/install.log
@@ -26,6 +24,7 @@
 # -fixed bug. iptables script should be in place before sed stuff...
 # -changed to MariaDB
 # -added sudo package and sudo rules
+# -added hostname param and network switch
 #
 #-------------------------------------------------------------------
 # after the script has finished, we need a reboot for all changes
@@ -42,6 +41,7 @@ SSL_CONF="/etc/apache2/sites-available/default-ssl.conf"
 usage () {
 
   echo "$0 <prod|test>"
+  echo "example: $0"
 
 }
 
@@ -73,11 +73,54 @@ case $ENV in
 
 esac
 
+read -p "Please enter hostname including domain (e.g. smaug.einoede.de): " HOST
+read -p "Please enter Interface (e.g. eth0): " IFACE
+echo "Do you want static network or dhcp (please enter 'static' or 'dhcp') "
+read -p "(dhcp|static): " NETCONF
+
+echo "let's clone the BPMspaceUG GIT repo...."
+cd /home/rootmessages
+git clone https://github.com/BPMspaceUG/linux_config_script_files.git
+
+case $NETCONF in
+
+    dhcp)
+	cp templates/interfaces.dhcp /etc/network/interfaces
+        sed -e "s/IFACE/$IFACE/g" -i /etc/network/interfaces
+	echo $HOST > /etc/hostname
+        echo "dhcp setup done. Hostname set"
+        ;;
+
+   static)
+	read -p "enter IP address:" IP
+        read -p "enter netmask:" NETMASK
+        read -p "enter default gateway:" GATEWAY
+        read -p "enter DNS Server IP:" DNS
+
+	cp templates/interfaces.static /etc/network/interfaces
+        sed -e "s/IFACE/$IFACE/g" -i /etc/network/interfaces
+        sed -e "s/IP/$IP/g" -i /etc/network/interfaces
+        sed -e "s/NETMASK/$NETMASK/g" -i /etc/network/interfaces
+        sed -e "s/GATEWAY/$GATEWAY/g" -i /etc/network/interfaces
+        echo "search mitsm.de" > /etc/resolv.conf
+        echo "nameserver $DNS" >> /etc/resolv.conf
+	echo $HOST > /etc/hostname
+        ;;
+
+    *)
+        echo "wrong input, exit"
+        exit 1
+	;;
+
+esac
+
 echo " "
 echo "creating user rootmessages..."
 echo " "
 adduser --quiet rootmessages 
 adduser rootmessages sudo
+
+apt-get update > /dev/null 2>&1
 
 echo "activate dotdeb repository"
 echo "deb http://packages.dotdeb.org jessie all" >> /etc/apt/sources.list
@@ -88,7 +131,7 @@ cd /tmp
 wget https://www.dotdeb.org/dotdeb.gpg && apt-key add dotdeb.gpg && apt-get update
 
 # add MariaDB repo
-echo "MariaDB 10.1 repository list" >> /etc/apt/sources.list
+echo "#MariaDB 10.1 repository list" >> /etc/apt/sources.list
 echo "deb [arch=amd64,i386] http://ftp.hosteurope.de/mirror/mariadb.org/repo/10.1/debian jessie main" >> /etc/apt/sources.list
 
 apt-get update > /dev/null 2>&1
