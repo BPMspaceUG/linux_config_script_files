@@ -25,6 +25,7 @@
 # -changed to MariaDB
 # -added sudo package and sudo rules
 # -added hostname param and network switch
+# -changed MariaDB repo because they changed the key..... :-(
 #
 #-------------------------------------------------------------------
 # after the script has finished, we need a reboot for all changes
@@ -73,19 +74,34 @@ case $ENV in
 
 esac
 
-read -p "Please enter hostname including domain (e.g. smaug.einoede.de): " HOST
-read -p "Please enter Interface (e.g. eth0): " IFACE
-echo "Do you want static network or dhcp (please enter 'static' or 'dhcp') "
-read -p "(dhcp|static): " NETCONF
+apt-get update > /dev/null 2>&1
+
+echo "let's install git, curl and sudo"
+apt-get install -y git curl sudo
+
+echo " "
+echo "done."
+
+echo " "
+echo "creating user rootmessages..."
+echo " "
+
+adduser --quiet rootmessages 
+adduser rootmessages sudo
 
 echo "let's clone the BPMspaceUG GIT repo...."
 cd /home/rootmessages
 git clone https://github.com/BPMspaceUG/linux_config_script_files.git
 
+read -p "Please enter hostname including domain (e.g. smaug.einoede.de): " HOST
+read -p "Please enter Interface (e.g. eth0): " IFACE
+echo "Do you want static network or dhcp (please enter 'static' or 'dhcp') "
+read -p "(dhcp|static): " NETCONF
+
 case $NETCONF in
 
     dhcp)
-	cp templates/interfaces.dhcp /etc/network/interfaces
+	cp linux_config_script_files/templates/interfaces.dhcp /etc/network/interfaces
         sed -e "s/IFACE/$IFACE/g" -i /etc/network/interfaces
 	echo $HOST > /etc/hostname
         echo "dhcp setup done. Hostname set"
@@ -97,7 +113,7 @@ case $NETCONF in
         read -p "enter default gateway:" GATEWAY
         read -p "enter DNS Server IP:" DNS
 
-	cp templates/interfaces.static /etc/network/interfaces
+	cp linux_config_script_files/templates/interfaces.static /etc/network/interfaces
         sed -e "s/IFACE/$IFACE/g" -i /etc/network/interfaces
         sed -e "s/IP/$IP/g" -i /etc/network/interfaces
         sed -e "s/NETMASK/$NETMASK/g" -i /etc/network/interfaces
@@ -114,11 +130,6 @@ case $NETCONF in
 
 esac
 
-echo " "
-echo "creating user rootmessages..."
-echo " "
-adduser --quiet rootmessages 
-adduser rootmessages sudo
 
 apt-get update > /dev/null 2>&1
 
@@ -131,23 +142,19 @@ cd /tmp
 wget https://www.dotdeb.org/dotdeb.gpg && apt-key add dotdeb.gpg && apt-get update
 
 # add MariaDB repo
-echo "#MariaDB 10.1 repository list" >> /etc/apt/sources.list
-echo "deb [arch=amd64,i386] http://ftp.hosteurope.de/mirror/mariadb.org/repo/10.1/debian jessie main" >> /etc/apt/sources.list
+apt-get install software-properties-common
+apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 0xcbcb082a1bb943db
+add-apt-repository 'deb [arch=amd64,i386] http://mirror.rackspeed.de/mariadb.org/repo/10.1/debian jessie main'
+
+#echo "#MariaDB 10.1 repository list" >> /etc/apt/sources.list
+#echo "deb [arch=amd64,i386] http://ftp.hosteurope.de/mirror/mariadb.org/repo/10.1/debian jessie main" >> /etc/apt/sources.list
 
 apt-get update > /dev/null 2>&1
-
-echo "let's install git, curl and sudo"
-apt-get install -y git curl sudo
-echo " "
-echo "done."
-
-echo "let's clone the BPMspaceUG GIT repo...."
-cd /home/rootmessages
-git clone https://github.com/BPMspaceUG/linux_config_script_files.git
 
 echo " "
 echo "now we will do some configuration and installation stuff."
 mv /etc/ssh/sshd_config /etc/ssh/sshd_config.bak
+cd /home/rootmessages
 cp linux_config_script_files/daemon/sshd/sshd_config /etc/ssh/
 
 mkdir /home/rootmessages/.ssh
