@@ -1,4 +1,9 @@
 #!/bin/bash
+# flush old ruleset
+iptables -F
+iptables -X
+iptables -t nat -F
+iptables -t nat -X
 
 # Allows all loopback (lo0) traffic and drop all traffic to 127/8 that doesn't use lo0
 # Erlaube interne Kommuninkation ueber loopback 
@@ -11,9 +16,10 @@ iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
 # ausgehende Verbindungen sind erlaubt
 iptables -A OUTPUT -j ACCEPT
 
-# http -> 4040, https -> 5050, ssh -> 7070
-# http/4040, https/5050, ssh/7070 sind erlaubt
-iptables -A INPUT -p tcp --dport 4040 -j ACCEPT
+# leite Port 4040 auf 5050 weiter
+iptables -A PREROUTING -t nat -p tcp --dport 4040 -j REDIRECT --to-port 5050
+
+# https/5050, ssh/7070 sind erlaubt
 iptables -A INPUT -p tcp --dport 5050 -j ACCEPT
 iptables -A INPUT -p tcp -m state --state NEW --dport 7070 -j ACCEPT
 
